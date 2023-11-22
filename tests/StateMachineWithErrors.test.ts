@@ -3,6 +3,7 @@ import {
   IntegrationTestClient,
   StepFunctionsTestClient,
 } from '@andybalham/cdk-cloud-test-kit';
+import { randomUUID } from 'crypto';
 import StateMachineTestStack from './StateMachineTestStack';
 
 jest.setTimeout(2 * 60 * 1000);
@@ -28,7 +29,12 @@ describe('Run tests against state machine with errors', () => {
 
   test('Flow is as expected', async () => {
     // Arrange
-    const input = {};
+    const input = {
+      requestId: randomUUID(),
+      body: {
+        numberAsString: '123',
+      },
+    };
 
     // Act
     await sut.startExecutionAsync(input);

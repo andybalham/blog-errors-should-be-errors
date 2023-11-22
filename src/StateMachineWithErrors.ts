@@ -25,13 +25,15 @@ export default class StateMachineWithErrors extends Construct {
 
     this.stateMachine = new StateMachine(this, 'StateMachine', {
       definition: new StateMachineBuilder()
+        // TODO: Create an initial state, then update
         .lambdaInvoke('ValidateInput', {
           lambdaFunction: validatorFunction,
+          retryOnServiceExceptions: false,
           inputPath: '$$.Execution.Input.body',
           catches: [
             { errors: ['InvalidFormat'], handler: 'HandleInvalidFormat' },
             { errors: ['InvalidContent'], handler: 'HandleInvalidContent' },
-            { errors: ['States.All'], handler: 'HandleUnexpectedError' },
+            { errors: ['States.ALL'], handler: 'HandleUnexpectedError' },
           ],
         })
         .perform(

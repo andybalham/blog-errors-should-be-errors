@@ -13,12 +13,14 @@ export default class StateMachineWithErrors extends Construct {
   //
   readonly stateMachine: StateMachine;
 
+  readonly stateTable: Table;
+
   constructor(scope: Construct, id: string) {
     super(scope, id);
 
     const validatorFunction = new NodejsFunction(this, 'ValidatorFunction', {});
 
-    const stateTable = new Table(this, 'StateTable', {
+    this.stateTable = new Table(this, 'StateTable', {
       partitionKey: { name: 'key', type: AttributeType.STRING },
       removalPolicy: RemovalPolicy.DESTROY,
     });
@@ -38,7 +40,7 @@ export default class StateMachineWithErrors extends Construct {
         })
         .perform(
           new DynamoPutItem(this, 'HandleValidRequest', {
-            table: stateTable,
+            table: this.stateTable,
             item: {
               key: DynamoAttributeValue.fromString(
                 JsonPath.stringAt('$$.Execution.Input.requestId')
@@ -51,7 +53,7 @@ export default class StateMachineWithErrors extends Construct {
 
         .perform(
           new DynamoPutItem(this, 'HandleInvalidFormat', {
-            table: stateTable,
+            table: this.stateTable,
             item: {
               key: DynamoAttributeValue.fromString(
                 JsonPath.stringAt('$$.Execution.Input.requestId')
@@ -64,7 +66,7 @@ export default class StateMachineWithErrors extends Construct {
 
         .perform(
           new DynamoPutItem(this, 'HandleInvalidContent', {
-            table: stateTable,
+            table: this.stateTable,
             item: {
               key: DynamoAttributeValue.fromString(
                 JsonPath.stringAt('$$.Execution.Input.requestId')
@@ -77,7 +79,7 @@ export default class StateMachineWithErrors extends Construct {
 
         .perform(
           new DynamoPutItem(this, 'HandleUnexpectedError', {
-            table: stateTable,
+            table: this.stateTable,
             item: {
               key: DynamoAttributeValue.fromString(
                 JsonPath.stringAt('$$.Execution.Input.requestId')

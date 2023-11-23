@@ -7,9 +7,11 @@ export default class StateMachineTestStack extends IntegrationTestStack {
   //
   static readonly Id = 'Blog-ErrorsShouldBeErrors';
 
-  static readonly StateMachineWithErrorsId = 'StateMachineWithErrors';
+  static readonly StateMachineWithErrorsId = 'StateMachineWithErrorsId';
 
-  static readonly EventObserverId = 'EventObserver';
+  static readonly StateTableWithErrorsId = 'StateTableWithErrorsId';
+
+  static readonly EventObserverId = 'EventObserverId';
 
   constructor(scope: Construct, id: string) {
     super(scope, id, {
@@ -29,6 +31,11 @@ export default class StateMachineTestStack extends IntegrationTestStack {
     this.addTestResourceTag(
       stateMachineWithErrors.stateMachine,
       StateMachineTestStack.StateMachineWithErrorsId
+    );
+
+    this.addTestResourceTag(
+      stateMachineWithErrors.stateTable,
+      StateMachineTestStack.StateTableWithErrorsId
     );
   }
 }

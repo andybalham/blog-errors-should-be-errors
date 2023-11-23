@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import {
+  DynamoDBTestClient,
   IntegrationTestClient,
   StepFunctionsTestClient,
 } from '@andybalham/cdk-cloud-test-kit';
@@ -11,6 +12,7 @@ jest.setTimeout(2 * 60 * 1000);
 describe('Run tests against state machine with errors', () => {
   //
   let sut: StepFunctionsTestClient;
+  let stateTable: DynamoDBTestClient;
 
   const testClient = new IntegrationTestClient({
     testStackId: StateMachineTestStack.Id,
@@ -25,15 +27,41 @@ describe('Run tests against state machine with errors', () => {
     sut = testClient.getStepFunctionsTestClient(
       StateMachineTestStack.StateMachineWithErrorsId
     );
+    stateTable = testClient.getDynamoDBTestClient(
+      StateMachineTestStack.StateTableWithErrorsId
+    );
   });
 
-  test('Flow is as expected', async () => {
+  test.each([
+    [
+      {
+        name: "Elias O'Leary",
+        age: 34,
+        email: 'elias.oleary@andybalham.com',
+      },
+      'Valid',
+    ],
+    [
+      {
+        name: 'Missing property',
+        age: 24,
+      },
+      'InvalidFormat',
+    ],
+    [
+      {
+        name: 'Too Young',
+        age: 10,
+        email: 'youngun@andybalham.com',
+      },
+      'InvalidContent',
+    ],
+  ])('%o has expected status of %s', async (body, expectedStatus) => {
+    //
     // Arrange
     const input = {
       requestId: randomUUID(),
-      body: {
-        numberAsString: '123',
-      },
+      body,
     };
 
     // Act
@@ -41,13 +69,18 @@ describe('Run tests against state machine with errors', () => {
 
     // Await
 
-    const { observations, timedOut } = await testClient.pollTestAsync({
-      until: async (o) => sut.isExecutionFinishedAsync(),
+    const { timedOut } = await testClient.pollTestAsync({
+      until: async () =>
+        !!(await stateTable.getItemAsync({ key: input.requestId })),
+    });
+
+    const requestItem: any = await stateTable.getItemAsync({
+      key: input.requestId,
     });
 
     // Assert
 
     expect(timedOut).toBeFalsy();
-    expect(observations).toBeDefined();
+    expect(requestItem.status).toBe(expectedStatus);
   });
 });

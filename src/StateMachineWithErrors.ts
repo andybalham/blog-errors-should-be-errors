@@ -6,6 +6,7 @@ import { JsonPath, StateMachine } from 'aws-cdk-lib/aws-stepfunctions';
 import {
   DynamoAttributeValue,
   DynamoPutItem,
+  DynamoUpdateItem,
 } from 'aws-cdk-lib/aws-stepfunctions-tasks';
 import { Construct } from 'constructs';
 
@@ -28,6 +29,17 @@ export default class StateMachineWithErrors extends Construct {
     this.stateMachine = new StateMachine(this, 'StateMachine', {
       definition: new StateMachineBuilder()
         // TODO: Create an initial state, then update
+        .perform(
+          new DynamoPutItem(this, 'CreateState', {
+            table: this.stateTable,
+            item: {
+              key: DynamoAttributeValue.fromString(
+                JsonPath.stringAt('$$.Execution.Input.requestId')
+              ),
+            },
+          })
+        )
+
         .lambdaInvoke('ValidateInput', {
           lambdaFunction: validatorFunction,
           retryOnServiceExceptions: false,
@@ -39,52 +51,76 @@ export default class StateMachineWithErrors extends Construct {
           ],
         })
         .perform(
-          new DynamoPutItem(this, 'HandleValidRequest', {
+          new DynamoUpdateItem(this, 'HandleValidRequest', {
             table: this.stateTable,
-            item: {
+            key: {
               key: DynamoAttributeValue.fromString(
                 JsonPath.stringAt('$$.Execution.Input.requestId')
               ),
-              status: DynamoAttributeValue.fromString('Valid'),
+            },
+            updateExpression: 'SET #status = :status',
+            expressionAttributeNames: {
+              '#status': 'status',
+            },
+            expressionAttributeValues: {
+              ':status': DynamoAttributeValue.fromString('Valid'),
             },
           })
         )
         .end()
 
         .perform(
-          new DynamoPutItem(this, 'HandleInvalidFormat', {
+          new DynamoUpdateItem(this, 'HandleInvalidFormat', {
             table: this.stateTable,
-            item: {
+            key: {
               key: DynamoAttributeValue.fromString(
                 JsonPath.stringAt('$$.Execution.Input.requestId')
               ),
-              status: DynamoAttributeValue.fromString('InvalidFormat'),
+            },
+            updateExpression: 'SET #status = :status',
+            expressionAttributeNames: {
+              '#status': 'status',
+            },
+            expressionAttributeValues: {
+              ':status': DynamoAttributeValue.fromString('InvalidFormat'),
             },
           })
         )
         .end()
 
         .perform(
-          new DynamoPutItem(this, 'HandleInvalidContent', {
+          new DynamoUpdateItem(this, 'HandleInvalidContent', {
             table: this.stateTable,
-            item: {
+            key: {
               key: DynamoAttributeValue.fromString(
                 JsonPath.stringAt('$$.Execution.Input.requestId')
               ),
-              status: DynamoAttributeValue.fromString('InvalidContent'),
+            },
+            updateExpression: 'SET #status = :status',
+            expressionAttributeNames: {
+              '#status': 'status',
+            },
+            expressionAttributeValues: {
+              ':status': DynamoAttributeValue.fromString('InvalidContent'),
             },
           })
         )
         .end()
 
         .perform(
-          new DynamoPutItem(this, 'HandleUnexpectedError', {
+          new DynamoUpdateItem(this, 'HandleUnexpectedError', {
             table: this.stateTable,
-            item: {
+            key: {
               key: DynamoAttributeValue.fromString(
                 JsonPath.stringAt('$$.Execution.Input.requestId')
               ),
-              status: DynamoAttributeValue.fromString('UnexpectedError'),
+            },
+            updateExpression: 'SET #status = :status',
+            expressionAttributeNames: {
+              '#status': 'status',
+            },
+            expressionAttributeValues: {
+              ':status': DynamoAttributeValue.fromString('UnexpectedError'),
             },
           })
         )

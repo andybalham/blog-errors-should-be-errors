@@ -2,7 +2,11 @@ import StateMachineBuilder from '@andybalham/state-machine-builder-v2';
 import { RemovalPolicy } from 'aws-cdk-lib';
 import { AttributeType, Table } from 'aws-cdk-lib/aws-dynamodb';
 import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
-import { JsonPath, StateMachine } from 'aws-cdk-lib/aws-stepfunctions';
+import {
+  Condition,
+  JsonPath,
+  StateMachine,
+} from 'aws-cdk-lib/aws-stepfunctions';
 import {
   DynamoAttributeValue,
   DynamoPutItem,
@@ -43,12 +47,25 @@ export default class StateMachineWithErrors extends Construct {
           lambdaFunction: validatorFunction,
           retryOnServiceExceptions: false,
           inputPath: '$$.Execution.Input.body',
+          resultPath: '$.validationResult',
           catches: [
-            { errors: ['InvalidFormat'], handler: 'HandleInvalidFormat' },
-            { errors: ['InvalidContent'], handler: 'HandleInvalidContent' },
             { errors: ['States.ALL'], handler: 'HandleUnexpectedError' },
           ],
         })
+        .choice('CheckValidationResult', {
+          choices: [
+            {
+              when: Condition.isPresent('$.validationResult.formatErrors'),
+              next: 'HandleInvalidFormat',
+            },
+            {
+              when: Condition.isPresent('$.validationResult.contentErrors'),
+              next: 'HandleInvalidContent',
+            },
+          ],
+          otherwise: 'HandleValidRequest',
+        })
+
         .perform(
           new DynamoUpdateItem(this, 'HandleValidRequest', {
             table: this.stateTable,
@@ -76,12 +93,19 @@ export default class StateMachineWithErrors extends Construct {
                 JsonPath.stringAt('$$.Execution.Input.requestId')
               ),
             },
-            updateExpression: 'SET #status = :status',
+            updateExpression:
+              'SET #status = :status, #formatErrors = :formatErrors',
             expressionAttributeNames: {
               '#status': 'status',
+              '#formatErrors': 'formatErrors',
             },
             expressionAttributeValues: {
               ':status': DynamoAttributeValue.fromString('InvalidFormat'),
+              ':formatErrors': DynamoAttributeValue.fromString(
+                JsonPath.jsonToString(
+                  JsonPath.objectAt('$.validationResult.formatErrors')
+                )
+              ),
             },
           })
         )
@@ -95,12 +119,19 @@ export default class StateMachineWithErrors extends Construct {
                 JsonPath.stringAt('$$.Execution.Input.requestId')
               ),
             },
-            updateExpression: 'SET #status = :status',
+            updateExpression:
+              'SET #status = :status, #contentErrors = :contentErrors',
             expressionAttributeNames: {
               '#status': 'status',
+              '#contentErrors': 'contentErrors',
             },
             expressionAttributeValues: {
               ':status': DynamoAttributeValue.fromString('InvalidContent'),
+              ':contentErrors': DynamoAttributeValue.fromString(
+                JsonPath.jsonToString(
+                  JsonPath.objectAt('$.validationResult.contentErrors')
+                )
+              ),
             },
           })
         )
@@ -125,7 +156,13 @@ export default class StateMachineWithErrors extends Construct {
         )
         .end()
 
-        .build(this),
+        .build(this, {
+          defaultProps: {
+            lambdaInvoke: {
+              payloadResponseOnly: true,
+            },
+          },
+        }),
     });
   }
 }

@@ -73,12 +73,8 @@ describe('Run tests against state machine with outputs', () => {
       {
         status: 'InvalidContent',
         formatErrors: undefined,
-        contentErrors: [
-          {
-            code: 'too_young',
-          }
-        ]
-      },      
+        contentErrors: ['too_young'],
+      },
     ],
   ])('%o has expected status of %s', async (body, expectedState) => {
     //
@@ -106,7 +102,15 @@ describe('Run tests against state machine with outputs', () => {
 
     expect(timedOut).toBeFalsy();
     expect(actualState.status).toBe(expectedState.status);
-    expect(actualState.formatErrors).toBe(expectedState.formatErrors);
-    expect(actualState.contentErrors).toBe(expectedState.contentErrors);
+
+    const actualFormatErrors = actualState.formatErrors
+      ? JSON.parse(actualState.formatErrors)
+      : undefined;
+    expect(actualFormatErrors).toEqual(expectedState.formatErrors);
+
+    const actualContentErrors = actualState.contentErrors
+      ? JSON.parse(actualState.contentErrors)
+      : undefined;
+    expect(actualContentErrors).toEqual(expectedState.contentErrors);
   });
 });

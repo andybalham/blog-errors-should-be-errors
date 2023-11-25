@@ -4,7 +4,7 @@ import * as zod from 'zod';
 import { ZodIssue } from 'zod';
 import { User, UserSchema } from './User';
 
-interface ValidationResult {
+interface ValidationResult {  
   user?: User;
   formatErrors?: ZodIssue[];
   contentErrors?: string[];

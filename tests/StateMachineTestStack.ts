@@ -2,6 +2,7 @@
 import { IntegrationTestStack } from '@andybalham/cdk-cloud-test-kit';
 import { Construct } from 'constructs';
 import StateMachineWithErrors from '../src/StateMachineWithErrors';
+import StateMachineWithOutputs from '../src/StateMachineWithOutputs';
 
 export default class StateMachineTestStack extends IntegrationTestStack {
   //
@@ -10,6 +11,10 @@ export default class StateMachineTestStack extends IntegrationTestStack {
   static readonly StateMachineWithErrorsId = 'StateMachineWithErrorsId';
 
   static readonly StateTableWithErrorsId = 'StateTableWithErrorsId';
+
+  static readonly StateMachineWithOutputsId = 'StateMachineWithOutputsId';
+
+  static readonly StateTableWithOutputsId = 'StateTableWithOutputsId';
 
   static readonly EventObserverId = 'EventObserverId';
 
@@ -26,6 +31,11 @@ export default class StateMachineTestStack extends IntegrationTestStack {
       'StateMachineWithErrors'
     );
 
+    const stateMachineWithOutputs = new StateMachineWithOutputs(
+      this,
+      'StateMachineWithOutputs'
+    );
+
     // Tag resources for testing
 
     this.addTestResourceTag(
@@ -36,6 +46,16 @@ export default class StateMachineTestStack extends IntegrationTestStack {
     this.addTestResourceTag(
       stateMachineWithErrors.stateTable,
       StateMachineTestStack.StateTableWithErrorsId
+    );
+
+    this.addTestResourceTag(
+      stateMachineWithOutputs.stateMachine,
+      StateMachineTestStack.StateMachineWithOutputsId
+    );
+
+    this.addTestResourceTag(
+      stateMachineWithOutputs.stateTable,
+      StateMachineTestStack.StateTableWithOutputsId
     );
   }
 }

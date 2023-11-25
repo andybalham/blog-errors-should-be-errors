@@ -39,14 +39,30 @@ describe('Run tests against state machine with outputs', () => {
         age: 34,
         email: 'elias.oleary@andybalham.com',
       },
-      'Valid',
+      {
+        status: 'Valid',
+        formatErrors: undefined,
+        contentErrors: undefined,
+      },
     ],
     [
       {
         name: 'Missing property',
         age: 24,
       },
-      'InvalidFormat',
+      {
+        status: 'InvalidFormat',
+        formatErrors: [
+          {
+            code: 'invalid_type',
+            expected: 'string',
+            received: 'undefined',
+            path: ['email'],
+            message: 'Required',
+          },
+        ],
+        contentErrors: undefined,
+      },
     ],
     [
       {
@@ -54,9 +70,17 @@ describe('Run tests against state machine with outputs', () => {
         age: 10,
         email: 'youngun@andybalham.com',
       },
-      'InvalidContent',
+      {
+        status: 'InvalidContent',
+        formatErrors: undefined,
+        contentErrors: [
+          {
+            code: 'too_young',
+          }
+        ]
+      },      
     ],
-  ])('%o has expected status of %s', async (body, expectedStatus) => {
+  ])('%o has expected status of %s', async (body, expectedState) => {
     //
     // Arrange
     const input = {
@@ -74,13 +98,15 @@ describe('Run tests against state machine with outputs', () => {
         !!(await stateTable.getItemAsync({ key: input.requestId })),
     });
 
-    const requestItem: any = await stateTable.getItemAsync({
+    const actualState: any = await stateTable.getItemAsync({
       key: input.requestId,
     });
 
     // Assert
 
     expect(timedOut).toBeFalsy();
-    expect(requestItem.status).toBe(expectedStatus);
+    expect(actualState.status).toBe(expectedState.status);
+    expect(actualState.formatErrors).toBe(expectedState.formatErrors);
+    expect(actualState.contentErrors).toBe(expectedState.contentErrors);
   });
 });

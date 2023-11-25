@@ -1,34 +1,43 @@
 /* eslint-disable no-console */
 /* eslint-disable import/prefer-default-export */
 import * as zod from 'zod';
+import { ZodIssue } from 'zod';
 import { User, UserSchema } from './User';
 
-function validateUser(user: Record<string, any>): User {
+interface ValidationResult {
+  user?: User;
+  formatErrors?: ZodIssue[];
+  contentErrors?: string[];
+}
+
+function validateUser(user: Record<string, any>): ValidationResult {
   try {
     UserSchema.parse(user);
 
     if (user.age < 18) {
       console.error('Age must not be less than 18');
-      const thrownError = new Error('InvalidContent');
-      thrownError.name = 'InvalidContent';
-      throw thrownError;
+      return {
+        contentErrors: ['too_young'],
+      };
     }
 
-    return user as User;
+    return {
+      user: user as User,
+    };
   } catch (error) {
     if (error instanceof zod.ZodError) {
       console.error('Invalid user:', error.errors);
-      const thrownError = new Error('InvalidFormat');
-      thrownError.name = 'InvalidFormat';
-      throw thrownError;
-    } else {
-      throw error;
+      return {
+        formatErrors: error.errors,
+      };
     }
+    throw error;
   }
 }
 
-export const handler = async (event: Record<string, any>): Promise<any> => {
+export const handler = async (
+  event: Record<string, any>
+): Promise<ValidationResult> => {
   console.log(JSON.stringify({ event }, null, 2));
-  const user = validateUser(event);
-  console.log(JSON.stringify({ validatedUser: user }, null, 2));
+  return validateUser(event);
 };
